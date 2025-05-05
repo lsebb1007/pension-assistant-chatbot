@@ -1,9 +1,11 @@
-langchain
-openai
-python-dotenv
 langchain_community
 langchain_openai
-streamlit
+requests
 fastapi
 uvicorn
-requests
+streamlit
+python-dotenv
+pandas
+langchain
+openai
+faiss-cpu

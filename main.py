@@ -1,43 +1,48 @@
+# main.py
 from fastapi import FastAPI
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
 import os
-import pandas as pd
-import re
 
+# LangChain RAG 관련
+from langchain.chains import RetrievalQA
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
+from langchain_openai import ChatOpenAI  # Chat 모델용 올바른 클래스
+
+# 환경변수 로드
 load_dotenv()
-openai_api_key = os.getenv("OPENAI_API_KEY")
+API_KEY = os.getenv("OPENAI_API_KEY")
 
+# 1) FAISS 인덱스 로드 (pickle 역직렬화 허용)
+emb = OpenAIEmbeddings(openai_api_key=API_KEY)
+vs = FAISS.load_local(
+    "faiss_index",
+    emb,
+    allow_dangerous_deserialization=True
+)
+
+# 2) RetrievalQA 체인 설정
+qa_chain = RetrievalQA.from_chain_type(
+    llm=ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=API_KEY),
+    chain_type="stuff",
+    retriever=vs.as_retriever(search_kwargs={"k": 5}),
+    return_source_documents=True
+)
+
+# FastAPI 앱 및 엔드포인트
 app = FastAPI()
-llm = ChatOpenAI(openai_api_key=openai_api_key, model="gpt-3.5-turbo")
 
 class ChatRequest(BaseModel):
     message: str
 
-
-# 챗봇 응답 API
 @app.post("/chat")
-def chat(request: ChatRequest):
-    try:
-        # 프롬프트를 파싱해서 user_context + user_input 나눠서 받을 경우 (또는 app.py에서 둘 다 보내기)
-        raw_text = request.message
-        context_split = raw_text.split("[질문]")
-        if len(context_split) == 2:
-            user_context, user_input = context_split
-        else:
-            user_context = ""
-            user_input = raw_text
-
-        messages = [
-            SystemMessage(content="당신은 사용자의 금융 상담을 도와주는 AI입니다. 사용자는 지금 이 대화에 직접 참여 중이며, '내', '저', '나' 등은 모두 사용자를 지칭합니다."),
-            HumanMessage(content=user_context.strip()),
-            HumanMessage(content=user_input.strip())
-        ]
-
-        response = llm(messages)
-        return {"response": response.content}
-
-    except Exception as e:
-        return {"response": f"❌ 오류 발생: {e}"}
+def chat(req: ChatRequest):
+    result = qa_chain({"query": req.message})
+    answer = result["result"]
+    # 출처 문서 목록 생성
+    sources = sorted({doc.metadata.get("source") for doc in result["source_documents"]})
+    citation_block = "\n".join(f"- {os.path.basename(src)}" for src in sources)
+    return {
+        "response": f"{answer}\n\n📑 출처 문서:\n{citation_block}"
+    }
