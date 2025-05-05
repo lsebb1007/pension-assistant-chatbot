@@ -1,10 +1,10 @@
-# langchain
-# openai
-# python-dotenv
-# streamlit
-# langchain_community
-# langchain_openai
-# streamlit
-# fastapi
-# uvicorn
+langchain
+openai
+python-dotenv
+streamlit
+langchain_community
+langchain_openai
+streamlit
+fastapi
+uvicorn
 requests
