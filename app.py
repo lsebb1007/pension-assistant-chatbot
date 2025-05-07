@@ -5,7 +5,7 @@ import requests
 # 고객 정보 불러오기
 @st.cache_data
 def load_user_data():
-    return pd.read_csv("dummy_users.csv", encoding="cp949")
+    return pd.read_csv("dummy_users.csv", encoding="utf-8")
 
 df = load_user_data()
 
