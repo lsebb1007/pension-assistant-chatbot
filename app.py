@@ -33,6 +33,7 @@ st.title("🤖 LangChain Chatbot (FastAPI 연동)")
 if "chat_log" not in st.session_state:
     st.session_state.chat_log = []
 
+
 user_input = st.text_input("You:", key="input")
 
 if user_input:
@@ -67,7 +68,7 @@ if user_input:
     try:
         response = requests.post(
             "http://localhost:8000/chat",
-            json={"message": prompt},
+            json={"message": prompt, "session_id": selected_user["name"]},
             timeout=10
         )
         response.raise_for_status()
