@@ -36,12 +36,34 @@ if "chat_log" not in st.session_state:
 user_input = st.text_input("You:", key="input")
 
 if user_input:
-    # FastAPI 서버로 메시지 POST
-    prompt = f"""{user_context.strip()}
+    # 외부 정보 추가할 user_context 복사본 생성
+    dynamic_context = user_context
 
-    [질문]
-    {user_input.strip()}"""
+    # 법령 키워드 감지 시 자동 요약 추가
+    if any(keyword in user_input for keyword in ["법", "퇴직", "퇴직급여", "연금전환", "근로자퇴직급여보장법"]):
+        law_response = requests.post(
+            "http://localhost:8000/fetch-law-detail",
+            params={"law_name": "근로자퇴직급여보장법"}
+        ).json()
+        dynamic_context += f"\n\n[📚 법령 요약]\n{law_response['summary']}"
 
+    # 🔍 종목명 자동 탐지 및 공시 API 호출
+    known_stocks = ["삼성전자", "현대차", "카카오", "네이버"]
+    mentioned_stocks = [s for s in known_stocks if s in user_input]
+    for stock in mentioned_stocks:
+        dart_response = requests.post(
+            "http://localhost:8000/fetch-dart-summary",
+            params={"corp_name": stock}
+        ).json()
+        dynamic_context += f"\n\n[📈 {stock} 공시 정보]\n{dart_response['summary']}"
+
+    # 최종 프롬프트 구성
+    prompt = f"""{dynamic_context.strip()}
+
+            [질문]
+            {user_input.strip()}"""
+
+    # LLM 호출
     try:
         response = requests.post(
             "http://localhost:8000/chat",
@@ -56,6 +78,7 @@ if user_input:
     # 대화 저장
     st.session_state.chat_log.append(("You", user_input))
     st.session_state.chat_log.append(("Bot", bot_reply))
+
 
 # 대화 히스토리 출력
 for speaker, msg in st.session_state.chat_log:

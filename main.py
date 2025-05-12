@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -6,10 +6,10 @@ from langchain.schema import HumanMessage, SystemMessage
 import os
 import pandas as pd
 import re
+from external_api import fetch_law_detail, fetch_dart_summary
 
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
-
 app = FastAPI()
 llm = ChatOpenAI(openai_api_key=openai_api_key, model="gpt-3.5-turbo")
 
@@ -41,3 +41,15 @@ def chat(request: ChatRequest):
 
     except Exception as e:
         return {"response": f"❌ 오류 발생: {e}"}
+
+@app.post("/fetch-law-detail")
+def law_search(law_name: str = Query(...)):
+    return fetch_law_detail(law_name)
+
+
+@app.post("/fetch-dart-summary")
+def dart_summary(corp_name: str = Query(...)):
+    print(f"[📥 DART 요청] corp_name: {corp_name}")
+    result = fetch_dart_summary(corp_name)
+    print(f"[📤 DART 응답] {result}")
+    return result
