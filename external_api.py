@@ -7,6 +7,67 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import requests
+from bs4 import BeautifulSoup
+import os
+
+# 환경변수 또는 직접 대입
+API_KEY = os.getenv("LAW_API_KEY") # 예시: g4c@korea.kr → "g4c"
+
+def get_law_id_and_mst(law_name: str) -> tuple[str, str]:
+    """법령명으로 검색하여 (법령ID, MST번호) 추출"""
+    url = "http://www.law.go.kr/DRF/lawSearch.do"
+    params = {
+        "OC": API_KEY,
+        "target": "law",
+        "type": "XML",
+        "query": law_name,
+        "display": 1
+    }
+
+    res = requests.get(url, params=params)
+    res.raise_for_status()
+    soup = BeautifulSoup(res.content, "lxml-xml")
+    law_id = soup.find("법령ID")
+    mst = soup.find("법령일련번호")  # lawService.do?MST= 에 사용
+    if not law_id or not mst:
+        raise ValueError("❌ 해당 법령명을 찾을 수 없습니다.")
+    return law_id.text.strip(), mst.text.strip()
+
+
+def get_law_full_text(mst: str) -> str:
+    """MST로 전체 본문을 XML로 받아 텍스트로 변환"""
+    url = "http://www.law.go.kr/DRF/lawService.do"
+    params = {
+        "OC": API_KEY,
+        "target": "law",
+        "type": "XML",
+        "MST": mst
+    }
+
+    res = requests.get(url, params=params)
+    res.raise_for_status()
+    soup = BeautifulSoup(res.content, "xml")
+    return soup.get_text(separator="\n").strip()
+
+
+def save_law_text_by_name(law_name: str, save_path: str):
+    """법령명으로 전체 전문 저장"""
+    try:
+        print(f"🔍 '{law_name}' 검색 중...")
+        law_id, mst = get_law_id_and_mst(law_name)
+        print(f"✅ 법령ID: {law_id}, MST: {mst}")
+
+        print("📥 본문 가져오는 중...")
+        full_text = get_law_full_text(mst)
+
+        with open(save_path, "w", encoding="utf-8") as f:
+            f.write(full_text)
+        print(f"📄 저장 완료: {save_path}")
+
+    except Exception as e:
+        print(f"❌ 오류 발생: {e}")
+
 CORP_NAME_ALIAS = {
     "삼성전자": "삼성전자㈜",
     "현대차": "현대자동차",
@@ -88,3 +149,18 @@ def fetch_dart_summary(corp_name):
 
     summary = "\n".join([f"- {r['report_nm']} ({r['rcept_dt']})" for r in report_list])
     return {"summary": f"{corp_name}의 최근 공시 목록:\n{summary}"}
+
+# 법 전문 다운로드
+if __name__ == "__main__":
+    # 퇴직연금 관련 법령 리스트
+    retirement_laws = [
+        "근로자퇴직급여보장법",
+        "국민연금법",
+    ]
+
+    for law_name in retirement_laws:
+        filename = f"{law_name}_전문.txt"
+        try:
+            save_law_text_by_name(law_name, filename)
+        except Exception as e:
+            print(f"❌ {law_name} 처리 중 오류 발생: {e}")
