@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
-from langchain.document_loaders import PyPDFLoader, TextLoader, UnstructuredURLLoader
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredURLLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
 
 # 환경변수 로드
 load_dotenv()
