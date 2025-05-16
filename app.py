@@ -28,6 +28,32 @@ user_context = (
     f"🛡️ 가입 보험: {selected_user['insurance_list']} | 월 보험료: {selected_user['insurance_monthly_fee']:,}원"
 )
 
+# 말풍선 함수 정의
+def chat_bubble(message, is_user=True):
+    if is_user:
+        bubble_style = f"""
+        <div style='text-align: right; margin-bottom: 10px;'>
+            <span style='background-color: #DCF8C6; color: #000000; padding: 10px 15px;
+                         border-radius: 20px; display: inline-block;
+                         max-width: 75%; word-wrap: break-word;
+                         box-shadow: 1px 1px 5px rgba(0,0,0,0.1);'>
+                🧑‍💻 {message}
+            </span>
+        </div>
+        """
+    else:
+        bubble_style = f"""
+        <div style='text-align: left; margin-bottom: 10px;'>
+            <span style='background-color: #F1F0F0; color: #000000; padding: 10px 15px;
+                         border-radius: 20px; display: inline-block;
+                         max-width: 75%; word-wrap: break-word;
+                         box-shadow: 1px 1px 5px rgba(0,0,0,0.1);'>
+                🤖 {message}
+            </span>
+        </div>
+        """
+    return bubble_style
+
 st.title("🤖 LangChain Chatbot (FastAPI 연동)")
 
 if "chat_log" not in st.session_state:
@@ -81,6 +107,7 @@ if user_input:
     st.session_state.chat_log.append(("Bot", bot_reply))
 
 
-# 대화 히스토리 출력
+# 💬 말풍선 형태로 대화 히스토리 출력
 for speaker, msg in st.session_state.chat_log:
-    st.markdown(f"**{speaker}:** {msg}")
+    is_user = speaker == "You"
+    st.markdown(chat_bubble(msg, is_user=is_user), unsafe_allow_html=True)
