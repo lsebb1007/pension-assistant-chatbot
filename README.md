@@ -9,21 +9,19 @@
 - 고객 맞춤형 답변(요약정보 연동)  
 
 ---
-
+```
 ## 🚩 프로젝트 구조
 
-```
-
-├─ retirement-slm-chatbot/   # React 프론트엔드
-│  ├─ src/
-│  ├─ tailwind.config.js
-│  ├─ postcss.config.cjs
-│  ├─ package.json
-│  └─ ...
-├─ app.py 또는 main.py       # FastAPI 백엔드
-├─ requirements.txt         # 백엔드 의존성
-├─ .env.example             # 환경변수 예시
-└─ README.md                # 프로젝트 가이드
+├─ retirement-slm-chatbot/   # React 프론트엔드  
+│  ├─ src/  
+│  ├─ tailwind.config.js  
+│  ├─ postcss.config.cjs  
+│  ├─ package.json  
+│  └─ ...  
+├─ app.py 또는 main.py       # FastAPI 백엔드  
+├─ requirements.txt         # 백엔드 의존성  
+├─ .env.example             # 환경변수 예시  
+└─ README.md                # 프로젝트 가이드  
 
 ````
 
