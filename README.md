@@ -1,8 +1,9 @@
-## 🟦 **README.md (환경설정, 실행, 문제해결까지 전체 정리본)**
+## 🟦 **README.md**
+
+
+## 🟦 퇴직연금 상담 챗봇 (React + Tailwind + FastAPI)
 
 ```markdown
-# 🟦 퇴직연금 상담 챗봇 (React + Tailwind + FastAPI)
-
 금융 앱(MTS) 스타일의 퇴직연금 상담 챗봇 프론트/백엔드 통합 프로젝트  
 - 모바일/웹 반응형 UI  
 - Tailwind CSS v3  
@@ -23,19 +24,18 @@
 ├─ .env.example             # 환경변수 예시  
 └─ README.md                # 프로젝트 가이드  
 
-````
-
----
 
 ## 🛠️ 1. 개발 환경 및 설치 가이드
+````
+---
 
 ### 💻 사전 요구사항
 - Node.js v20.x 이상
 - Python 3.9+
 - (Windows/Mac/Linux 모두 지원)
-
+````
 ### 📦 1-1. 프론트엔드(React) 세팅
-
+````
 ```bash
 cd retirement-slm-chatbot
 
