@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from fastapi import FastAPI, Query
@@ -13,6 +14,15 @@ from external_api import fetch_law_detail, fetch_dart_summary
 load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 개발 중엔 전체 허용, 실제 운영시엔 보안 강화 필요
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 llm = ChatOpenAI(openai_api_key=openai_api_key, model="gpt-3.5-turbo")
 
 # faiss_index 벡터DB 로드 (최초 1회만)
