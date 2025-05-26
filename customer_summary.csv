@@ -1,0 +1,2 @@
+user_id,name,age,job,income,expected_retire_age,bank_balance,loan_balance,last_transaction,card_spending,card_category,pension_type,pension_balance,stock_investment,fund_investment,insurance_list,insurance_monthly_fee,owned_etf
+101,홍길동,45,과장,60000000,60,25000000,10000000,2025-05-01,1200000,쇼핑,IRP,30000000,Y,N,"건강보험,실손보험",150000, TIGER200, KODEX코스피

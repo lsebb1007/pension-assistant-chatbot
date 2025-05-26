@@ -32,6 +32,25 @@ vectorstore = FAISS.load_local(
     allow_dangerous_deserialization=True
 )
 
+def toint(x):
+    try:
+        return int(float(str(x).replace(",", "").strip()))
+    except Exception:
+        return 0
+
+def get_customer_summary():
+    df = pd.read_csv("customer_summary.csv", encoding="utf-8")
+    d = df.iloc[0].to_dict()
+    summary = (
+        f"이름: {d['name']}, 나이: {d['age']}, 직업: {d['job']}\n"
+        f"연소득: {toint(d['income']):,}원, 은행잔고: {toint(d['bank_balance']):,}원, 대출잔고: {toint(d['loan_balance']):,}원\n"
+        f"최근거래일: {d['last_transaction']}, 카드소비: {toint(d['card_spending']):,}원, 소비카테고리: {d['card_category']}\n"
+        f"퇴직연금 유형: {d['pension_type']}, 잔고: {toint(d['pension_balance']):,}원\n"
+        f"주식투자여부: {d['stock_investment']}, 펀드투자여부: {d['fund_investment']}\n"
+        f"보험: {d['insurance_list']}, 월 보험료: {toint(d['insurance_monthly_fee']):,}원\n"
+        f"보유 ETF: {d['owned_etf']}\n"
+    )
+    return summary
 
 
 class ChatRequest(BaseModel):
@@ -46,11 +65,16 @@ chat_sessions = {}
 def chat(request: ChatRequest):
     try:
         raw_text = request.message
+
+        # 고객요약정보 항상 삽입
+        customer_info = get_customer_summary()
+        user_context = f"[고객 요약정보]\n{customer_info}"
+
         context_split = raw_text.split("[질문]")
         if len(context_split) == 2:
-            user_context, user_input = context_split
+            extra_context, user_input = context_split
+            user_context += "\n" + extra_context
         else:
-            user_context = ""
             user_input = raw_text
 
         session_id = request.session_id
