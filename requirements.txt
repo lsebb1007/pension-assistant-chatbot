@@ -10,4 +10,9 @@ requests
 beautifulsoup4
 datetime
 lxml
+pypdf
+unstructured
 faiss-cpu
+selenium
+webdriver-manager
+tqdm
