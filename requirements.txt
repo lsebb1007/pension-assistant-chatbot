@@ -16,3 +16,4 @@ faiss-cpu
 selenium
 webdriver-manager
 tqdm
+python-docs

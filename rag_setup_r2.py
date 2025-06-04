@@ -1,53 +1,113 @@
 import os
+import glob
 from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredURLLoader
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredWordDocumentLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from tqdm import tqdm
+import pandas as pd
+from langchain.schema import Document
+
+# txt/md 파일 인코딩 자동 감지
+def load_text_any_encoding(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
+        return [Document(page_content=text)]
+    except Exception:
+        try:
+            with open(path, "r", encoding="euc-kr") as f:
+                text = f.read()
+            return [Document(page_content=text)]
+        except Exception as e:
+            print(f"[Error] TXT/MD 파일 파싱 실패: {path} ({e})")
+            return []
+
+# csv 파일 파싱
+def load_csv(path):
+    try:
+        df = pd.read_csv(path, encoding="utf-8")
+        text = df.to_string(index=False)
+        return [Document(page_content=text)]
+    except Exception:
+        try:
+            df = pd.read_csv(path, encoding="euc-kr")
+            text = df.to_string(index=False)
+            return [Document(page_content=text)]
+        except Exception as e:
+            print(f"[Error] CSV 파일 파싱 실패: {path} ({e})")
+            return []
+
+# xlsx 파일 파싱
+def load_xlsx(path):
+    try:
+        df = pd.read_excel(path)
+        text = df.to_string(index=False)
+        return [Document(page_content=text)]
+    except Exception as e:
+        print(f"[Error] XLSX 파일 파싱 실패: {path} ({e})")
+        return []
+
+# docx/doc 파일 파싱
+def load_docx(path):
+    try:
+        from docx import Document as DocxDoc
+        doc = DocxDoc(path)
+        text = "\n".join([p.text for p in doc.paragraphs])
+        return [Document(page_content=text)]
+    except Exception as e:
+        print(f"[Error] DOCX/DOC 파일 파싱 실패: {path} ({e})")
+        return []
 
 # 환경변수 로드
 load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
 
-# 1) 원본 문서 로드
+# 1. 파일 전체 재귀 탐색 및 로딩
 docs = []
+pdf_dir = "docs_r2"
 
-# 1-1) PDF 파일 로드
-pdf_dir = "docs_r1"
-for fname in os.listdir(pdf_dir):
-    if fname.lower().endswith(".pdf"):
-        loader = PyPDFLoader(os.path.join(pdf_dir, fname))
-        docs.extend(loader.load())
+for fpath in glob.glob(pdf_dir + '/**/*', recursive=True):
+    if not os.path.isfile(fpath):
+        continue
+    if os.path.getsize(fpath) == 0:
+        print(f"[Warning] 파일이 비어 있어 스킵: {fpath}")
+        continue
+    fname = os.path.basename(fpath)
+    ext = fname.lower().split('.')[-1]
+    try:
+        if ext == "pdf":
+            try:
+                docs.extend(PyPDFLoader(fpath).load())
+            except Exception as e:
+                print(f"[Error] PDF 파일 파싱 실패: {fpath} ({e})")
+        elif ext in ["txt", "md"]:
+            docs.extend(load_text_any_encoding(fpath))
+        elif ext in ["docx", "doc"]:
+            docs.extend(load_docx(fpath))
+        elif ext == "csv":
+            docs.extend(load_csv(fpath))
+        elif ext == "xlsx":
+            docs.extend(load_xlsx(fpath))
+        # hwp 등 기타 포맷은 아예 무시 (pass)
+    except Exception as e:
+        print(f"[Error] 파일 파싱 중 알 수 없는 에러: {fpath} ({e})")
+        continue
 
-# 1-2) 로컬 텍스트(.txt, .md) 로드
-law_dir = os.path.join("docs_r1", "laws")
-if os.path.isdir(law_dir):
-    for fname in os.listdir(law_dir):
-        if fname.lower().endswith((".txt", ".md")):
-            loader = TextLoader(os.path.join(law_dir, fname), encoding="utf-8")
-            docs.extend(loader.load())
+print(f"실제 파일 로드 수: {len(docs)}")
+for i, d in enumerate(docs[:3]):
+    print(f"문서 {i+1} 미리보기: {getattr(d, 'page_content', '')[:100]}")
 
-# 1-3) GitHub에 올려둔 법령 전문(raw URL) 로드
-law_urls = [
-    # 예시: 본인의 GitHub raw URL로 대체
-    "https://raw.githubusercontent.com/USERNAME/REPO/main/국민연금법.txt",
-    "https://raw.githubusercontent.com/USERNAME/REPO/main/근로자퇴직연금보장법.txt",
-]
-if law_urls:
-    url_loader = UnstructuredURLLoader(law_urls)
-    docs.extend(url_loader.load())
-
-# 2) 텍스트 청킹
+# 2. 텍스트 청킹
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
     chunk_overlap=200
 )
 chunks = splitter.split_documents(docs)
 
-# 3) 임베딩 생성 (배치 처리)
+# 3. 임베딩 생성 (배치 처리)
 embeddings = OpenAIEmbeddings(openai_api_key=API_KEY)
-
 all_embeddings = []
 batch_size = 100
 
@@ -59,12 +119,14 @@ for i in tqdm(range(0, len(chunks), batch_size)):
     vectors = embeddings.embed_documents(texts)
     all_embeddings.extend(vectors)
 
-# 4) FAISS 벡터 DB 구축 및 저장
+# 4. FAISS 벡터 DB 구축 및 저장
 text_embedding_pairs = list(zip([doc.page_content for doc in chunks], all_embeddings))
-vectorstore = FAISS.from_embeddings(
-    text_embedding_pairs,
-    embeddings  # OpenAIEmbeddings 객체
-)
-vectorstore.save_local("faiss_index_r1")
-
-print("✅ RAG 벡터 인덱스 생성 완료: faiss_index_r1 폴더에 저장됨")
+if not text_embedding_pairs:
+    print("❌ 벡터 DB에 저장할 데이터가 없습니다. 문서가 제대로 로드되었는지 확인하세요.")
+else:
+    vectorstore = FAISS.from_embeddings(
+        text_embedding_pairs,
+        embeddings
+    )
+    vectorstore.save_local("faiss_index_r2")
+    print("✅ RAG 벡터 인덱스 생성 완료: faiss_index_r2 폴더에 저장됨")
