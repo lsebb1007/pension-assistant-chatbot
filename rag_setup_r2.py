@@ -65,35 +65,40 @@ load_dotenv()
 API_KEY = os.getenv("OPENAI_API_KEY")
 
 # 1. 파일 전체 재귀 탐색 및 로딩
+target_folders = [
+    "docs_r2/금융용어 설명 자료",
+    "docs_r2/은행내규",
+    "docs_r2/QnA",
+    "docs_r2/상품정보"
+]
 docs = []
-pdf_dir = "docs_r2"
-
-for fpath in glob.glob(pdf_dir + '/**/*', recursive=True):
-    if not os.path.isfile(fpath):
-        continue
-    if os.path.getsize(fpath) == 0:
-        print(f"[Warning] 파일이 비어 있어 스킵: {fpath}")
-        continue
-    fname = os.path.basename(fpath)
-    ext = fname.lower().split('.')[-1]
-    try:
-        if ext == "pdf":
-            try:
-                docs.extend(PyPDFLoader(fpath).load())
-            except Exception as e:
-                print(f"[Error] PDF 파일 파싱 실패: {fpath} ({e})")
-        elif ext in ["txt", "md"]:
-            docs.extend(load_text_any_encoding(fpath))
-        elif ext in ["docx", "doc"]:
-            docs.extend(load_docx(fpath))
-        elif ext == "csv":
-            docs.extend(load_csv(fpath))
-        elif ext == "xlsx":
-            docs.extend(load_xlsx(fpath))
-        # hwp 등 기타 포맷은 아예 무시 (pass)
-    except Exception as e:
-        print(f"[Error] 파일 파싱 중 알 수 없는 에러: {fpath} ({e})")
-        continue
+for folder in target_folders:
+    for fpath in glob.glob(folder + '/**/*', recursive=True):
+        if not os.path.isfile(fpath):
+            continue
+        if os.path.getsize(fpath) == 0:
+            print(f"[Warning] 파일이 비어 있어 스킵: {fpath}")
+            continue
+        fname = os.path.basename(fpath)
+        ext = fname.lower().split('.')[-1]
+        try:
+            if ext == "pdf":
+                try:
+                    docs.extend(PyPDFLoader(fpath).load())
+                except Exception as e:
+                    print(f"[Error] PDF 파일 파싱 실패: {fpath} ({e})")
+            elif ext in ["txt", "md"]:
+                docs.extend(load_text_any_encoding(fpath))
+            elif ext in ["docx", "doc"]:
+                docs.extend(load_docx(fpath))
+            elif ext == "csv":
+                docs.extend(load_csv(fpath))
+            elif ext == "xlsx":
+                docs.extend(load_xlsx(fpath))
+            # hwp 등 기타 포맷은 아예 무시 (pass)
+        except Exception as e:
+            print(f"[Error] 파일 파싱 중 알 수 없는 에러: {fpath} ({e})")
+            continue
 
 print(f"실제 파일 로드 수: {len(docs)}")
 for i, d in enumerate(docs[:3]):
@@ -128,5 +133,5 @@ else:
         text_embedding_pairs,
         embeddings
     )
-    vectorstore.save_local("faiss_index_r2")
-    print("✅ RAG 벡터 인덱스 생성 완료: faiss_index_r2 폴더에 저장됨")
+    vectorstore.save_local("faiss_index_full")
+    print("✅ RAG 벡터 인덱스 생성 완료: faiss_index_full 폴더에 저장됨")
