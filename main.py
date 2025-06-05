@@ -27,10 +27,14 @@ llm = ChatOpenAI(openai_api_key=openai_api_key, model="gpt-3.5-turbo")
 
 # faiss_index 벡터DB 로드 (최초 1회만)
 embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
-vectorstore = FAISS.load_local(
-    "faiss_index", embeddings,
-    allow_dangerous_deserialization=True
-)
+
+vectorstores = {
+    "r0": FAISS.load_local("faiss_index_r0", embeddings, allow_dangerous_deserialization=True),
+    "r1": FAISS.load_local("faiss_index_r1", embeddings, allow_dangerous_deserialization=True),
+    "r2": FAISS.load_local("faiss_index_r2", embeddings, allow_dangerous_deserialization=True),
+    "r3": FAISS.load_local("faiss_index_r3", embeddings, allow_dangerous_deserialization=True),
+    "full": FAISS.load_local("faiss_index_full", embeddings, allow_dangerous_deserialization=True),
+}
 
 def toint(x):
     try:
@@ -56,6 +60,7 @@ def get_customer_summary():
 class ChatRequest(BaseModel):
     message: str
     session_id: str
+    rag_type: str = "full"  # ← 기본값 "full", 실험 시 파라미터로 전달
 
 # 전역 대화 세션 저장소
 chat_sessions = {}
@@ -78,6 +83,8 @@ def chat(request: ChatRequest):
             user_input = raw_text
 
         session_id = request.session_id
+        rag_type = getattr(request, "rag_type", "full")
+        vectorstore = vectorstores[rag_type]
 
         # 💡 벡터DB에서 유사 근거 검색
         docs_and_scores = vectorstore.similarity_search_with_score(user_input, k=3)
