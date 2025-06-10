@@ -23,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-llm = ChatOpenAI(openai_api_key=openai_api_key, model="gpt-3.5-turbo")
+llm = ChatOpenAI(openai_api_key=openai_api_key, model="gpt-4o")
 
 # faiss_index 벡터DB 로드 (최초 1회만)
 embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
