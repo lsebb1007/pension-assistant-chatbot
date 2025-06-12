@@ -29,6 +29,20 @@ function App() {
     return sessionId;
   };
 
+  // 1) 스트리밍 함수
+  function streamText(text, callback, speed = 30) {
+    let i = 0;
+    function next() {
+      if (i <= text.length) {
+        callback(text.slice(0, i));
+        i++;
+        setTimeout(next, speed);
+      }
+    }
+    next();
+  }
+
+  // 2) sendMessage 함수 교체
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
     const userMsg = { type: "user", text: input };
@@ -37,13 +51,23 @@ function App() {
     setLoading(true);
     try {
       const minWait = new Promise(res => setTimeout(res, 700));
-      const responsePromise = axios.post("http://localhost:8000/chat", {
+      const responsePromise = axios.post("/chat", {
         message: input,
         session_id: getSessionId()
       });
       const [response] = await Promise.all([responsePromise, minWait]);
       const botText = response?.data?.response || "❌ 답변 생성 중 오류가 발생했습니다.";
-      setMessages(msgs => [...msgs, { type: "bot", text: botText }]);
+
+      setMessages(msgs => [...msgs, { type: "bot", text: "" }]);
+      streamText(
+        botText,
+        t => setMessages(msgs => {
+          const newMsgs = [...msgs];
+          newMsgs[newMsgs.length - 1] = { type: "bot", text: t };
+          return newMsgs;
+        }),
+        24 // ms, 필요시 조절
+      );
     } catch (e) {
       setMessages(msgs => [
         ...msgs,
@@ -60,6 +84,11 @@ function App() {
       sendMessage();
     }
   };
+
+  // ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐
+  // 반드시 return을 붙여주세요!
+  // 기존 return ( ... ) JSX 부분을 모두 살려야 합니다.
+  // ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center">
