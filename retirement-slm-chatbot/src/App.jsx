@@ -51,9 +51,11 @@ function App() {
     setLoading(true);
     try {
       const minWait = new Promise(res => setTimeout(res, 700));
+      // 변경: rag_type 파라미터를 명시적으로 전달
       const responsePromise = axios.post("/chat", {
         message: input,
-        session_id: getSessionId()
+        session_id: getSessionId(),
+        rag_type: "full" // ★ 반드시 "full"로 고정
       });
       const [response] = await Promise.all([responsePromise, minWait]);
       const botText = response?.data?.response || "❌ 답변 생성 중 오류가 발생했습니다.";

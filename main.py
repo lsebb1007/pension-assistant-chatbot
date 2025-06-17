@@ -112,7 +112,7 @@ def chat(request: ChatRequest):
 다음 RAG (Retrieval-Augmented Generation) 데이터를 활용하여 답변을 구성해야 합니다. 이 데이터는 퇴직연금 관련 최신 법규(근로자퇴직급여 보장법, 소득세법 등), 세법, 그리고 신한은행의 내부 규정 및 상품 설명 자료(약관, FAQ 등)를 포함합니다. RAG 데이터에 명확한 정보가 없거나, 추가적인 안내가 필요하다고 판단되면 사용자에게 어떤 정보가 더 필요한지 구체적으로 질문하거나, 은행 상담사 연결을 유도하는 답변을 해주세요.
 
 <RAG_DATA_START>
-{rag_retrieved_documents}
+{retrieved_context}
 <RAG_DATA_END>
 
 ---
@@ -161,8 +161,11 @@ def chat(request: ChatRequest):
         else:
             chat_sessions[session_id].append(HumanMessage(content=f"(참고) {final_prompt}"))
 
-        chat_sessions[session_id].append(HumanMessage(content=user_input.strip()))
+        #chat_sessions[session_id].append(HumanMessage(content=user_input.strip()))
+        print("🔥 LLM에 보낼 메시지 수:", len(chat_sessions[session_id]))
+        print("🔥 마지막 메시지:", chat_sessions[session_id][-1].content[:200])
         response = llm(chat_sessions[session_id])
+        print("✅ 응답 생성 완료")
         chat_sessions[session_id].append(response)
 
         return {"response": response.content}

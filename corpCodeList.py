@@ -26,9 +26,3 @@ def download_corp_list():
         print("✅ corp_list.csv 저장 완료")
 
 download_corp_list()
-
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-print("[DEBUG] Loaded DART API KEY:", os.getenv("DART_API_KEY"))
